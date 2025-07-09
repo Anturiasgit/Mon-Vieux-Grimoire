@@ -2,6 +2,18 @@ const express = require('express');
 
 const app = express();
 
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb+srv://Anturia:AnturiaMongoDB75.@cluster0.glgtwxm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',
+    {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    })
+    .then(() => console.log('Connexion à MongoDB réussie !'))
+    .catch(() => console.log('Connexion à MongoDB échouée !'));
+
+
+
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -16,7 +28,7 @@ app.post('/api/books', (req, res, next) => {
     res.status(201).json({
         message: 'Objet crée !'
     });
-}); 
+});
 
 app.get('/api/books', (req, res, next) => {
     const books = [
