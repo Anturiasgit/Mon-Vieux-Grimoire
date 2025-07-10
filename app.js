@@ -1,8 +1,8 @@
 const express = require('express');
-
 const app = express();
-
 const mongoose = require('mongoose');
+
+const Book = require('./models/Book');
 
 mongoose.connect('mongodb+srv://Anturia:AnturiaMongoDB75.@cluster0.glgtwxm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',
     {
@@ -24,48 +24,39 @@ app.use((req, res, next) => {
 });
 
 app.post('/api/books', (req, res, next) => {
-    console.log(req.body);
-    res.status(201).json({
-        message: 'Objet crée !'
+    delete req.body._id;
+    const book = new Book({
+       ...req.body
     });
+    book.save()
+    .then(() => res.status(201).json({ message: 'Objet enregistré !'}))
+    .catch(error => res.status(400).json({ error }));
+});
+
+app.put('/api/books/:id', (req, res, next) => {
+    Book.updateOne({ _id: req.params.id }, { ...req.body, _id: req.params.id })
+    .then(() => res.status(200).json({ message: 'Objet modifié !'}))
+    .catch(error => res.status(400).json({ error }))
+});
+
+app.delete('/api/books/:id', (req, res, next) => {
+    Book.deleteOne({ _id: req.params.id })
+    .then(() => res.status(200).json({ message: 'Objet supprimé !'}))
+    .catch(error => res.status(400).json({ error }))
+});
+
+app.get('/api/books/:id', (req, res, next) => {
+    Book.findOne({ _id: req.params.id })
+    .then(book => res.status(200).json(book))
+    .catch(error => res.status(404).json({ error }));
 });
 
 app.get('/api/books', (req, res, next) => {
-    const books = [
-        {
-            _id: 'book1',
-            title: 'Titre 1',
-            author: 'Auteur 1',
-            description: 'Description 1',
-            imageUrl: 'https://cdn.pixabay.com/photo/2016/11/18/56/camera-4267692_1280.jpg',
-            year: 2025,
-            genre: 'Genre 1',
-            ratings: [
-                {
-                    userId: 'Commentateur 1',
-                    grade: 3,
-                }
-            ],
-            averageRating: 3,
-        },
-        {
-            _id: 'book2',
-            title: 'Titre 2',
-            author: 'Auteur 2',
-            description: 'Description 2',
-            imageUrl: 'https://image-url.com/hp1.jpg',
-            year: 2025,
-            genre: 'Genre 2',
-            ratings: [
-                {
-                    userId: 'Commentateur 2',
-                    grade: 4,
-                }
-            ],
-            averageRating: 4,
-        },
-    ];
-    res.status(200).json(books);
+   Book.find()
+   .then(books => res.status(200).json(books))
+   .catch(error => res.status(400).json({ error }));
 });
 
 module.exports = app;
+
+
