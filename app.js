@@ -6,7 +6,6 @@ const mongoose = require('mongoose');
 const bookRoutes = require('./routes/book');
 const userRoutes = require('./routes/user');
 
-
 mongoose.connect('mongodb+srv://Anturia:AnturiaMongoDB75.@cluster0.glgtwxm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',
     {
         useNewUrlParser: true,
@@ -32,7 +31,4 @@ app.use('/api/auth', userRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
-
 module.exports = app;
-
-

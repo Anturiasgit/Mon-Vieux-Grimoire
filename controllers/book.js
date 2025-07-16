@@ -1,4 +1,5 @@
 const Book = require('../models/Book');
+const Ratings = require('../models/Ratings');
 const fs = require('fs/promises');
 const sharp = require('sharp');
 const path = require('path');
@@ -94,25 +95,57 @@ exports.modifyBook = async (req, res, next) => {
   }
 };
 
-exports.deleteBook = (req, res, next) => {
-    Book.findOne({ _id: req.params.id })
-        .then(book => {
-            if (book.userId != req.auth.userId) {
-                res.status(401).json({ message: 'Non-autorisé' });
-            } else {
-                const filename = book.imageUrl.split('/images/')[1];
-                fs.unlink(`images/${filename}`, () => {
-                    Book.deleteOne({ _id: req.params.id })
-                        .then(() => { res.status(200).json({ message: 'Livre supprimé !' }) })
-                        .catch(error => res.status(401).json({ error }));
-                });
-            }
-        })
-        .catch(error => {
-            res.status(500).json({ error });
-        });
-}
+exports.deleteBook = async (req, res, next) => {
+  try {
+    const book = await Book.findOne({ _id: req.params.id });
 
+    if (!book) {
+      return res.status(404).json({ message: 'Livre non trouvé' });
+    }
+
+    if (book.userId != req.auth.userId) {
+      return res.status(403).json({ message: 'Non autorisé' });
+    }
+
+    if (book.imageUrl) {
+      const filename = book.imageUrl.split('/images/')[1];
+      const imagePath = path.join(__dirname, '../images', filename);
+
+      try {
+        await fs.unlink(imagePath);
+      } catch (err) {
+        console.warn('Image déjà supprimée ou introuvable :', err.message);
+      }
+    }
+
+    await Book.deleteOne({ _id: req.params.id });
+    res.status(200).json({ message: 'Livre supprimé !' });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.rateBook = async (req, res, next) => {
+  try {
+    console.log(req.headers);
+    const ratingsObject = req.body;
+    delete ratingsObject._userId;
+
+     const ratings = new Ratings({
+      ...ratingsObject,
+      userId: req.auth.userId,
+      grade: req.body.rating,
+    });
+
+    await ratings.save();
+    res.status(201).json({ message: 'Note enregistrée !' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 exports.getOneBook = (req, res, next) => {
     Book.findOne({ _id: req.params.id })
@@ -125,4 +158,5 @@ exports.getAllBooks = (req, res, next) => {
         .then(books => res.status(200).json(books))
         .catch(error => res.status(400).json({ error }));
 }
+
 
