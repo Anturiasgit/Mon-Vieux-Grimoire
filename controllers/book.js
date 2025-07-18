@@ -1,5 +1,4 @@
 const Book = require('../models/Book');
-const Ratings = require('../models/Ratings');
 const fs = require('fs/promises');
 const sharp = require('sharp');
 const path = require('path');
@@ -10,7 +9,7 @@ exports.createBook = async (req, res, next) => {
     delete bookObject._id;
     delete bookObject._userId;
 
-    const inputPath = req.file.path;          
+    const inputPath = req.file.path;
     const filename = req.file.filename.replace(/\.[^.]+$/, '.webp');
     const outputPath = path.join(path.dirname(inputPath), filename);
 
@@ -19,7 +18,7 @@ exports.createBook = async (req, res, next) => {
       .webp()
       .toFile(outputPath);
 
-    await fs.unlink(inputPath);                
+    await fs.unlink(inputPath);
 
     const book = new Book({
       ...bookObject,
@@ -52,7 +51,7 @@ exports.modifyBook = async (req, res, next) => {
         .webp()
         .toFile(outputPath);
 
-      await fs.unlink(inputPath); 
+      await fs.unlink(inputPath);
 
       bookObject = {
         ...JSON.parse(req.body.book),
@@ -129,18 +128,28 @@ exports.deleteBook = async (req, res, next) => {
 
 exports.rateBook = async (req, res, next) => {
   try {
-    console.log(req.headers);
-    const ratingsObject = req.body;
-    delete ratingsObject._userId;
+    const book = await Book.findOne({ _id: req.params.id });
 
-     const ratings = new Ratings({
-      ...ratingsObject,
-      userId: req.auth.userId,
-      grade: req.body.rating,
-    });
+    const alreadyRated = book.ratings.some(rating => rating.userId === req.auth.userId);
+    if (alreadyRated) {
+      return res.status(400).json({ error: 'Vous avez déjà noté ce livre.' });
+    }
 
-    await ratings.save();
-    res.status(201).json({ message: 'Note enregistrée !' });
+    book.ratings.push(req.body);
+
+    const totalRatings = book.ratings.length;
+
+    const sum = book.ratings.reduce((acc, ratingsObject) => {
+      const note = ratingsObject.rating ?? ratingsObject.grade;
+      return acc + note;
+    }, 0);
+
+    book.averageRating = sum / totalRatings;
+
+    await book.save();
+    
+    res.status(201).json(book);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -148,15 +157,15 @@ exports.rateBook = async (req, res, next) => {
 };
 
 exports.getOneBook = (req, res, next) => {
-    Book.findOne({ _id: req.params.id })
-        .then(book => res.status(200).json(book))
-        .catch(error => res.status(404).json({ error }));
+  Book.findOne({ _id: req.params.id })
+    .then(book => res.status(200).json(book))
+    .catch(error => res.status(404).json({ error }));
 }
 
 exports.getAllBooks = (req, res, next) => {
-    Book.find()
-        .then(books => res.status(200).json(books))
-        .catch(error => res.status(400).json({ error }));
+  Book.find()
+    .then(books => res.status(200).json(books))
+    .catch(error => res.status(400).json({ error }));
 }
 
 
