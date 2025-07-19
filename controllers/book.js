@@ -14,7 +14,7 @@ exports.createBook = async (req, res, next) => {
     const outputPath = path.join(path.dirname(inputPath), filename);
 
     await sharp(inputPath)
-      .resize({ width: 800, withoutEnlargement: true })
+      .resize({ withoutEnlargement: true })
       .webp()
       .toFile(outputPath);
 
